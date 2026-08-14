@@ -1,0 +1,6 @@
+# JupyterLite 빌드에 필요한 패키지
+jupyterlite-core==0.8.0
+jupyterlite-pyodide-kernel==0.8.0
+jupyterlab~=4.6.0
+notebook~=7.6.0
+jupyter-server>=2.0
