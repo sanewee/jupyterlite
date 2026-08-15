@@ -13,5 +13,5 @@ body {
 /* 마크다운 셀 본문 */
 .jp-RenderedHTMLCommon {
   font-size: 15px !important;
-  line-height: 1.7 !important;
+  line-height: 1.3 !important;
 }
