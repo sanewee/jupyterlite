@@ -3,6 +3,7 @@
   "jupyter-config-data": {
     "appName": "프로젝트",
     "collaborative": false,
-    "enableMemoryStorage": false
+    "enableMemoryStorage": false,
+    "exposeAppInBrowser": true
   }
 }
