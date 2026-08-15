@@ -1,0 +1,16 @@
+{
+  "@jupyterlab/apputils-extension:themes": {
+    "overrides": {
+      "ui-font-family": "'Pretendard', -apple-system, 'Apple SD Gothic Neo', 'Segoe UI', 'Noto Sans KR', 'Malgun Gothic', sans-serif",
+      "content-font-family": "'Pretendard', -apple-system, 'Apple SD Gothic Neo', 'Segoe UI', 'Noto Sans KR', 'Malgun Gothic', sans-serif",
+      "content-font-size1": "15px",
+      "content-line-height": "1.7",
+      "code-font-family": "'D2Coding', 'JetBrains Mono', Consolas, 'Nanum Gothic Coding', monospace",
+      "code-font-size": "14px",
+      "code-line-height": "1.6"
+    }
+  },
+  "@jupyterlab/notebook-extension:tracker": {
+    "markdownCellFontSize": 15
+  }
+}
