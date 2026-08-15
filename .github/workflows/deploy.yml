@@ -32,10 +32,10 @@ jobs:
 
       # PROCO 자동 저장 스크립트를 노트북 화면에 끼워 넣습니다.
       # 학생이 셀을 실행하지 않아도 10분마다 mywork.ipynb 가 서버로 저장됩니다.
-      - name: 자동 저장 스크립트 삽입
+      - name: 자동 저장 스크립트와 글꼴 삽입
         run: |
-          cp proco-autosave.js dist/lab/
-          sed -i 's#</head>#<script defer src="proco-autosave.js"></script></head>#' dist/lab/index.html
+          cp proco-autosave.js proco-theme.css dist/lab/
+          sed -i 's#</head>#<link rel="stylesheet" href="proco-theme.css"><script defer src="proco-autosave.js"></script></head>#' dist/lab/index.html
           grep -q proco-autosave dist/lab/index.html && echo "삽입 확인 완료"
 
       - uses: actions/upload-pages-artifact@v3
