@@ -1,5 +1,5 @@
 /**
- * PROCO 자동 저장 v2
+ * PROCO 자동 저장 v3  (v2 + [제출] 신호: 현재 노트북을 그대로 제출본으로 올림)
  * ---------------------------------------------------------------------------
  * 주피터라이트 화면(lab/index.html)에 빌드 단계에서 끼워 넣는 스크립트입니다.
  *
@@ -36,11 +36,11 @@
     return fetch(API + "?api=load&code=" + encodeURIComponent(CODE) + "&kind=" + kind)
       .then(function (r) { return r.json(); });
   }
-  function 서버로(문자열) {
+  function 서버로(문자열, 방식) {
     return fetch(API, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({ action: "save", code: CODE, content: 문자열, mode: "auto" })
+      body: JSON.stringify({ action: "save", code: CODE, content: 문자열, mode: 방식 || "auto" })
     }).then(function (r) { return r.json(); });
   }
 
@@ -70,7 +70,8 @@
     } catch (e) { console.warn("[PROCO] 서버 확인 실패:", e); }
 
     try {
-      var t = await fetch(new URL("../files/template.ipynb", location.href));
+      var t = await fetch(API + "/api/template");                 // 워커에 내장된 템플릿
+      if (!t.ok) t = await fetch(new URL("../files/template.ipynb", location.href)); // 예비
       await 파일쓰기(await t.json());
       console.log("[PROCO] 템플릿으로 mywork.ipynb 를 만들었습니다.");
     } catch (e) { console.warn("[PROCO] 템플릿을 가져오지 못했습니다:", e); }
@@ -94,10 +95,27 @@
     } catch (e) { console.warn("[PROCO] 저장 중 오류:", e); return "오류"; }
   }
 
-  /* ---------- 3. 기록지의 [불러오기] 신호 ---------- */
+  /* ---------- 3. 기록지의 [불러오기]·[제출] 신호 ---------- */
   window.addEventListener("message", async function (ev) {
     var m = ev.data;
-    if (!m || m.proco !== "load" || !상태.contents) return;
+    if (!m || !상태.contents) return;
+
+    // [제출] — 지금 노트북의 mywork.ipynb 를 그대로 서버에 올립니다.
+    if (m.proco === "push") {
+      try {
+        var f = await 파일읽기();
+        var s2 = typeof f.content === "string" ? f.content : JSON.stringify(f.content);
+        var r2 = await 서버로(s2, "manual");
+        상태.해시 = null;   // 다음 자동 저장 때 다시 비교하도록
+        ev.source && ev.source.postMessage(
+          { proco: "push-result", ok: !!(r2 && r2.ok), time: r2 && r2.time, error: r2 && r2.error }, "*");
+      } catch (e) {
+        ev.source && ev.source.postMessage({ proco: "push-result", ok: false, error: String(e) }, "*");
+      }
+      return;
+    }
+
+    if (m.proco !== "load") return;
     try {
       var r = await 서버에서(m.kind === "manual" ? "manual" : "auto");
       if (!r.ok || !r.exists) {
