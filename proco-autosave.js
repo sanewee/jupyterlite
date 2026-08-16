@@ -1,6 +1,9 @@
 /**
- * PROCO 자동 저장 v3  (v2 + [제출] 신호: 현재 노트북을 그대로 제출본으로 올림)
- * --------------------------------------------------------------------------- 
+ * PROCO 자동 저장 v4
+ *  - v3: [제출] 신호로 현재 노트북을 제출본으로 올림
+ *  - v4: mywork.ipynb 고정이 아니라, 학생이 실제로 열어 둔 노트북을 따라감.
+ *        저장·제출 전에 주피터 문서를 먼저 저장시켜 최신 실행 결과까지 포함.
+ * ---------------------------------------------------------------------------
  * 주피터라이트 화면(lab/index.html)에 빌드 단계에서 끼워 넣는 스크립트입니다.
  *
  * v1은 브라우저 저장소(IndexedDB)를 직접 만졌다가 부팅을 방해했습니다.
@@ -21,7 +24,7 @@
 
   var FILE = "mywork.ipynb";
   var 주기 = 10 * 60 * 1000; // 10분
-  var 상태 = { 해시: null, contents: null };
+  var 상태 = { 해시: null, contents: null, app: null, 최근: null };
 
   /* ---------- 개인 코드와 서버 주소 ---------- */
   var q = new URLSearchParams(location.search);
@@ -45,11 +48,30 @@
   }
 
   /* ---------- 파일 읽고 쓰기 (주피터랩 정식 API) ---------- */
-  function 파일읽기() {
-    return 상태.contents.get(FILE, { content: true });
+  function 파일읽기(경로) {
+    return 상태.contents.get(경로 || FILE, { content: true });
   }
   function 파일쓰기(내용객체) {
     return 상태.contents.save(FILE, { type: "notebook", format: "json", content: 내용객체 });
+  }
+
+  /* 학생이 실제로 열어 둔 노트북을 따라갑니다.
+     화면 맨 앞의 문서가 .ipynb 면 그 파일을, 아니면 마지막으로 봤던 노트북을,
+     그것도 없으면 mywork.ipynb 를 씁니다. */
+  function 대상경로() {
+    try {
+      var w = 상태.app.shell.currentWidget;
+      if (w && w.context && /\.ipynb$/i.test(w.context.path || "")) 상태.최근 = w.context.path;
+    } catch (e) {}
+    return 상태.최근 || FILE;
+  }
+  /* 서버로 보내기 전에 주피터 문서를 먼저 저장시켜, 방금 실행한 출력까지 파일에 담습니다. */
+  async function 문서먼저저장() {
+    try {
+      var w = 상태.app.shell.currentWidget;
+      if (w && w.context && w.context.save && /\.ipynb$/i.test(w.context.path || "")
+          && w.context.model && w.context.model.dirty) await w.context.save();
+    } catch (e) { console.warn("[PROCO] 문서 저장 실패(계속 진행):", e); }
   }
 
   /* ---------- 1. 처음 준비 ---------- */
@@ -85,12 +107,14 @@
   async function 저장시도() {
     if (!상태.contents) return "대기중";
     try {
-      var m = await 파일읽기();
+      await 문서먼저저장();
+      var 경로 = 대상경로();
+      var m = await 파일읽기(경로);
       var s = typeof m.content === "string" ? m.content : JSON.stringify(m.content);
       var h = 해시(s);
       if (h === 상태.해시) return "변화없음";
       var r = await 서버로(s);
-      if (r && r.ok) { 상태.해시 = h; console.log("[PROCO] 자동 저장", r.time); return "저장됨"; }
+      if (r && r.ok) { 상태.해시 = h; console.log("[PROCO] 자동 저장 (" + 경로 + ")", r.time); return "저장됨"; }
       console.warn("[PROCO] 저장 실패:", r && r.error); return "실패";
     } catch (e) { console.warn("[PROCO] 저장 중 오류:", e); return "오류"; }
   }
@@ -100,15 +124,18 @@
     var m = ev.data;
     if (!m || !상태.contents) return;
 
-    // [제출] — 지금 노트북의 mywork.ipynb 를 그대로 서버에 올립니다.
+    // [제출] — 학생이 열어 둔 노트북을 먼저 저장시킨 뒤 그대로 서버에 올립니다.
     if (m.proco === "push") {
       try {
-        var f = await 파일읽기();
+        await 문서먼저저장();
+        var 경로2 = 대상경로();
+        var f = await 파일읽기(경로2);
         var s2 = typeof f.content === "string" ? f.content : JSON.stringify(f.content);
         var r2 = await 서버로(s2, "manual");
         상태.해시 = null;   // 다음 자동 저장 때 다시 비교하도록
+        console.log("[PROCO] 제출 (" + 경로2 + ")", r2 && r2.time);
         ev.source && ev.source.postMessage(
-          { proco: "push-result", ok: !!(r2 && r2.ok), time: r2 && r2.time, error: r2 && r2.error }, "*");
+          { proco: "push-result", ok: !!(r2 && r2.ok), time: r2 && r2.time, path: 경로2, error: r2 && r2.error }, "*");
       } catch (e) {
         ev.source && ev.source.postMessage({ proco: "push-result", ok: false, error: String(e) }, "*");
       }
@@ -136,6 +163,7 @@
     if (!app || !app.serviceManager) return;
     clearInterval(기다림);
     app.started.then(function () {
+      상태.app = app;
       상태.contents = app.serviceManager.contents;
       준비();
       setInterval(저장시도, 주기);
