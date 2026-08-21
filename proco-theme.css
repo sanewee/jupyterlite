@@ -15,3 +15,20 @@ body {
   font-size: 15px !important;
   line-height: 1.7 !important;
 }
+
+/* 마크다운 셀 — 문단과 목록, 표의 줄 간격 */
+.jp-RenderedHTMLCommon p,
+.jp-RenderedHTMLCommon li,
+.jp-RenderedHTMLCommon td,
+.jp-RenderedHTMLCommon th { line-height: 1.75 !important; }
+.jp-RenderedHTMLCommon p { margin: 0 0 .7em !important; }
+.jp-RenderedHTMLCommon li + li { margin-top: .25em !important; }
+/* 마크다운 제목 — 너무 크고 성기던 것을 줄입니다 */
+.jp-RenderedHTMLCommon h1 { font-size: 1.6em !important; line-height: 1.35 !important; margin: .6em 0 .4em !important; }
+.jp-RenderedHTMLCommon h2 { font-size: 1.35em !important; line-height: 1.35 !important; margin: .6em 0 .35em !important; }
+.jp-RenderedHTMLCommon h3 { font-size: 1.15em !important; line-height: 1.4 !important; margin: .5em 0 .3em !important; }
+/* 셀을 편집할 때(코드·마크다운 모두) */
+.cm-editor .cm-line { line-height: 1.6 !important; }
+.jp-MarkdownCell .cm-editor .cm-line { line-height: 1.7 !important; }
+/* 셀 사이 간격 */
+.jp-Cell { padding: 4px 0 !important; }
